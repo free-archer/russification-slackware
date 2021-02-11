@@ -5,8 +5,10 @@
 # запросом на комбинацию клавиш переключения раскладки клавиатуры.
 #
 # Created by Graf (graf on slackware.su) 09.2016
-#
 # Last changed at 06.2017 - version 4
+
+# Last editor Free Archer 2021
+# The script was tested on Slackware 15 (current)
 #####
 
 LILOCFG="/etc/lilo.conf"
