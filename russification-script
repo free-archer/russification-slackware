@@ -1,9 +1,8 @@
 #!/bin/bash
-
 #####
 # Скрипт русификации консоли и Х-сессии в UTF-8 с
 # запросом на комбинацию клавиш переключения раскладки клавиатуры.
-#
+
 # Created by Graf (graf on slackware.su) 09.2016
 # Last changed at 06.2017 - version 4
 
@@ -11,6 +10,7 @@
 # The script was tested on Slackware 15 (current)
 #####
 
+#Область настроек
 LILOCFG="/etc/lilo.conf"
 LILOBIN="/sbin/lilo"
 RCFONT="/etc/rc.d/rc.font"
@@ -18,13 +18,10 @@ LALIAS="/usr/share/locale/locale.alias"
 PLANG="/etc/profile.d/lang.sh"
 RCKEYMAP="/etc/rc.d/rc.keymap"
 KEYS=""
-
 # Копируем раскладку по AltShift
 KBD_AS="/usr/share/kbd/keymaps/i386/qwerty/ruwin_alt_sh-UTF-8.map.gz"
 
- [ ! -f "$KBD_AS" ] && cp ./ruwin_alt_sh-UTF-8.map.gz $KBD_AS  
-
-# Проверка архитектуры
+ # Проверка архитектуры
 ARCH=$( uname -m )
 
 if [[ "$ARCH" == "x86_64" ]]
@@ -47,13 +44,72 @@ fi
 # Проверяем версию Slackware и назначаем соответствующие пути к man.conf
 SVERSION=$(cat /etc/slackware-version)
 
-if [[ "$SVERSION" == "Slackware 14.2" ]]
-then
+case $SVERSION in 
+"Slackware 14.2" ) 
   MANCONF="/etc/man.conf"
-else
-  MANCONF="/usr/lib$ARCH/man.conf"
-fi 
+  XKB="/etc/X11/xorg.conf.d/90-keyboard-layout.conf"
+  KLC="/usr/share/X11/xorg.conf.d/90-keyboard-layout.conf"
+  ;;
+"Slackware 14.2+" | "Slackware 15"  ) 
+  XKB="/etc/X11/xorg.conf.d/90-keyboard-layout-evdev.conf"
+  KLC="/usr/share/X11/xorg.conf.d/90-keyboard-layout-evdev.conf"
+  MANCONF="/etc/man_db.conf"
+  ;;
+esac 
 
+#УСЛОВИЯ
+#Спрашиваем нужно ли русифицировать консоль
+need_ru_console()
+{
+ while true; do
+ echo "Файл /etc/rc.d/rc.font будет перезаписан новым шрифтом, старый файд будет переименован в /etc/rc.d/rc.font.backup!"
+    read -p "Вы хотитке русифицировать консоль? (y/n): " RU_CONSOLE
+    case $RU_CONSOLE in
+        [Yy]* )RU_CONSOLE=Y; break;; 
+        [Nn]* )RU_CONSOLE=N; break;;
+        * ) echo "Please answer [y]es or [n]o.";;
+    esac
+ done
+}
+#Спрашиваем нужно ли русифицировать man
+need_ru_man()
+{
+ while true; do
+    read -p "Вы хотитке русифицировать страницы помощи man? (y/n): " RU_MAN
+    case $RU_MAN in
+        [Yy]* )RU_MAN=Y; break;; 
+        [Nn]* )RU_MAN=N; break;;
+        * ) echo "Please answer [y]es or [n]o.";;
+    esac
+ done
+}
+#Спрашиваем нужно ли приводить lilo к utf-8
+need_ru_lilo()
+{
+ while true; do
+    read -p "Нужно приводить lilo к utf-8? (y/n): " RU_LILO
+    case $RU_LILO in
+        [Yy]* )RU_LILO=Y; break;; 
+        [Nn]* )RU_LILO=N; break;;
+        * ) echo "Please answer [y]es or [n]o.";;
+    esac
+ done
+}
+
+#ОСНОВНЫЕ ФУНКЦИИ
+# Функция назначения клавиш переключения раскладки
+switching_keys()
+{
+ while true; do
+    read -p "Select a keyboard layout switching keys: (a - Alt+Shift; c - Ctrl+Shift; l - CapsLock): " RPC
+    case $RPC in
+        [Aa]* ) KEYS="ruwin_alt_sh-UTF-8"; break;;
+        [Cc]* ) KEYS="ruwin_ct_sh-UTF-8";break;;
+        [Ll]* ) KEYS="ruwin_cplk-UTF-8";break;;
+        * ) echo "Please select [a] [c] or [l]";;
+    esac
+ done
+}
 # Функция запуска lilo
 start_lilo()
 {
@@ -80,9 +136,12 @@ reboot_pc()
  done
 }
 
-# Функция назначения клавиш переключения раскладки
-switching_keys()
+# Функция перезаписи rc.font новыми значениями
+ru_keymap()
 {
+   [ ! -f "$KBD_AS" ] && cp ./ruwin_alt_sh-UTF-8.map.gz $KBD_AS 
+       
+# Функция назначения клавиш переключения раскладки
  while true; do
     read -p "Select a keyboard layout switching keys: (a - Alt+Shift; c - Ctrl+Shift; l - CapsLock): " RPC
     case $RPC in
@@ -92,12 +151,6 @@ switching_keys()
         * ) echo "Please select [a] [c] or [l]";;
     esac
  done
-}
-
-# Функция перезаписи rc.font новыми значениями
-keymap()
-{
-  switching_keys
 
   COUNT=$(($COUNT+1))
   
@@ -114,13 +167,27 @@ done
 EOF
 
 echo "loadkeys $KEYS" 1>>$RCFONT
+
+chmod +x $RCFONT
+chmod -x $RCKEYMAP
 }
 
+ru_man()
+{
+   MANSTR=$(grep 'groff -Dutf8 -Tutf8 -mandoc' $MANCONF)
+
+   if [ -z "$MANSTR" ]
+   then
+   echo 'Enable russian mans...'
+   cp $MANCONF $MANCONF.backup &&
+   cat $MANCONF.backup | sed /"NROFF\t\t\/usr\/bin\/nroff -mandoc"/c"NROFF\t\t\/usr\/bin\/groff -Dutf8 -Tutf8 -mandoc" > $MANCONF && COUNT=$(($COUNT+1))
+   fi   
+}
 
 ######## change lilo ###############
-# 
 set_lilo_utf8()
 {
+   cp $LILOCFG $LILOCFG.backup
 # Находим append
   FD=$(grep 'append=' $LILOCFG)
 
@@ -152,11 +219,10 @@ set_lilo_utf8()
     sed -i s'/append="/append="vt.default_utf8=1 /' $LILOCFG && start_lilo
   fi
 }
-#
-### end change lilo ###
 
 ### меняем язык ###
-#
+ru_languge()
+{
 UTFSTR=$(grep 'ru_RU.UTF-8' $PLANG)
 
 # Чтобы кучу раз не писало при повторных запусках, проверяем наличие строки
@@ -172,11 +238,9 @@ export LANG=ru_RU.UTF-8
 EOF
 
 fi
-#
 #### закончили менять язык ####
 
 #### Правим алиасы ####
-#
 AUTFSTR=$(grep 'ru_RU.UTF-8' $LALIAS)
 
 # Чтобы кучу раз не писало при повторных запусках, проверяем наличие строки
@@ -187,53 +251,17 @@ then
   cp $LALIAS $LALIAS.backup &&
   cat $LALIAS.backup | sed /"ru_RU.ISO-8859-5"/c"russian\t\tru_RU.UTF-8\nru_RU\t\tru_RU.UTF-8\nru\t\tru_RU.UTF-8" > $LALIAS
 fi
-#
-#### конец правки алиасов ####
 
-
-#### Добавляем шрифт и раскладку ####
-#
-# Предупреждаем пользователя о том, что файл rc.font будет перезаписан.
-#
-# НАДО ЛИ?
-#
-##### Если надо, убрать знаки комментрия ниже ####
-#while true; do
-#    read -p "The file /etc/rc.d/rc.font be rewrite by new data now. Old file be renamed to /etc/rc.d/rc.font.backup. Continue? (y/n): " KMP
-#    case $KMP in
-#        [Yy]* ) keymap; break;;
-#        [Nn]* )break;;
-#        * ) echo "Please answer [y]es or [n]o.";;
-#    esac
-#done
-##### До сих пор. ########
-#
-##### а эту закомментировать ####
-
-keymap
-
-####
-#### закончили добавлять шрифт и раскладку ####
-
-#### Правим man.conf ####
-#
-MANSTR=$(grep 'groff -Dutf8 -Tutf8 -mandoc' $MANCONF)
-
-if [ -z "$MANSTR" ]
-then
-  echo 'Enable russian mans...'
-  cp $MANCONF $MANCONF.backup &&
-  cat $MANCONF.backup | sed /"NROFF\t\t\/usr\/bin\/nroff -mandoc"/c"NROFF\t\t\/usr\/bin\/groff -Dutf8 -Tutf8 -mandoc" > $MANCONF && COUNT=$(($COUNT+1))
+if [[ $RU_CONSOLE = "Y" ]]; then
+   ru_keymap
 fi
-#
-#### закончили править man.conf ####
+
+if [[ $RU_MAN = "Y" ]]; then
+   ru_man
+fi
 
 #### Переключение раскладки в X ####
-#
-XKB="/etc/X11/xorg.conf.d/90-keyboard-layout.conf"
-KLC="/usr/share/X11/xorg.conf.d/90-keyboard-layout.conf"
-
-echo "Change a keyboard layout switching keys in X-session..."
+echo "Изменяем раскладку клавиатуры в Х-ах"
 
 if [ ! -f "$XKB" ]
 then
@@ -258,24 +286,33 @@ fi
   fi
 
 COUNT=$(($COUNT+1))
+}
 
-#
-#### закончили с X-ми ####
 
-chmod +x $RCFONT
-chmod -x $RCKEYMAP
+#START
+switching_keys
 
-###### LILO ########
-#
-# Делаем бэкап lilo.conf, правим его под UTF8 и после всех манипуляций командуем lilo
-#
-# ВНИМАНИЕ, данную операцию можно проделать вручную или запустив liloconfig.
-#
- cp $LILOCFG $LILOCFG.backup && set_lilo_utf8
-#
-### end LILO ###
+need_ru_console
+need_ru_man
+need_ru_lilo
 
-## Запрос на перезагрузку  ##
+ru_languge
+
+if [ $RU_CONSOLE = "Y" ]
+then
+ru_keymap
+fi
+
+if [ $RU_MAN = "Y" ]
+then
+ru_man
+fi
+
+if [ $RU_LILO = "Y" ]
+then
+ set_lilo_utf8
+fi
+
 if [ $COUNT != 0 ]
 then
  reboot_pc
