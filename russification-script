@@ -110,18 +110,6 @@ switching_keys()
     esac
  done
 }
-# Функция запуска lilo
-start_lilo()
-{
- while true; do
-    read -p "Lilo configuration has been changed. Do you wish to run ${LILOBIN} (y/n): " RUNLILO
-    case $RUNLILO in
-        [Yy]* ) $LILOBIN; COUNT=$(($COUNT+1));break;;
-        [Nn]* )break;;
-        * ) echo "Please answer [y]es or [n]o.";;
-    esac
- done
-}
 
 # Функция перезагрузки компа
 reboot_pc()
@@ -139,19 +127,39 @@ reboot_pc()
 # Функция перезаписи rc.font новыми значениями
 ru_keymap()
 {
+#### мкняем язык в консоль  locale ####
+UTFSTR=$(grep 'ru_RU.UTF-8' $PLANG)
+
+# Чтобы кучу раз не писало при повторных запусках, проверяем наличие строки
+if [ -z "$UTFSTR" ]
+then
+ COUNT=$(($COUNT+1))
+ cp $PLANG $PLANG.backup &&
+ cat $PLANG.backup | sed s/"^[^#]"/"#&"/ > $PLANG &&
+ cat << EOF >> $PLANG
+
+# Russian locale
+export LANG=ru_RU.UTF-8
+EOF
+
+fi
+#### закончили менять язык ####
+
+#### Правим алиасы ####
+AUTFSTR=$(grep 'ru_RU.UTF-8' $LALIAS)
+
+# Чтобы кучу раз не писало при повторных запусках, проверяем наличие строки
+if [ -z "$AUTFSTR" ]
+then
+  COUNT=$(($COUNT+1))
+  echo 'Aliases correction...'
+  cp $LALIAS $LALIAS.backup &&
+  cat $LALIAS.backup | sed /"ru_RU.ISO-8859-5"/c"russian\t\tru_RU.UTF-8\nru_RU\t\tru_RU.UTF-8\nru\t\tru_RU.UTF-8" > $LALIAS
+fi
+#### Правим алиасы ####
+
    [ ! -f "$KBD_AS" ] && cp ./ruwin_alt_sh-UTF-8.map.gz $KBD_AS 
        
-# Функция назначения клавиш переключения раскладки
- while true; do
-    read -p "Select a keyboard layout switching keys: (a - Alt+Shift; c - Ctrl+Shift; l - CapsLock): " RPC
-    case $RPC in
-        [Aa]* ) KEYS="ruwin_alt_sh-UTF-8"; break;;
-        [Cc]* ) KEYS="ruwin_ct_sh-UTF-8";break;;
-        [Ll]* ) KEYS="ruwin_cplk-UTF-8";break;;
-        * ) echo "Please select [a] [c] or [l]";;
-    esac
- done
-
   COUNT=$(($COUNT+1))
   
   echo 'Enable russian font in console...'
@@ -220,46 +228,9 @@ set_lilo_utf8()
   fi
 }
 
-### меняем язык ###
-ru_languge()
+### меняем язык в X ###
+ru_langugeX()
 {
-UTFSTR=$(grep 'ru_RU.UTF-8' $PLANG)
-
-# Чтобы кучу раз не писало при повторных запусках, проверяем наличие строки
-if [ -z "$UTFSTR" ]
-then
- COUNT=$(($COUNT+1))
- cp $PLANG $PLANG.backup &&
- cat $PLANG.backup | sed s/"^[^#]"/"#&"/ > $PLANG &&
- cat << EOF >> $PLANG
-
-# Russian locale
-export LANG=ru_RU.UTF-8
-EOF
-
-fi
-#### закончили менять язык ####
-
-#### Правим алиасы ####
-AUTFSTR=$(grep 'ru_RU.UTF-8' $LALIAS)
-
-# Чтобы кучу раз не писало при повторных запусках, проверяем наличие строки
-if [ -z "$AUTFSTR" ]
-then
-  COUNT=$(($COUNT+1))
-  echo 'Aliases correction...'
-  cp $LALIAS $LALIAS.backup &&
-  cat $LALIAS.backup | sed /"ru_RU.ISO-8859-5"/c"russian\t\tru_RU.UTF-8\nru_RU\t\tru_RU.UTF-8\nru\t\tru_RU.UTF-8" > $LALIAS
-fi
-
-if [[ $RU_CONSOLE = "Y" ]]; then
-   ru_keymap
-fi
-
-if [[ $RU_MAN = "Y" ]]; then
-   ru_man
-fi
-
 #### Переключение раскладки в X ####
 echo "Изменяем раскладку клавиатуры в Х-ах"
 
@@ -288,6 +259,19 @@ fi
 COUNT=$(($COUNT+1))
 }
 
+# Функция запуска lilo
+start_lilo()
+{
+ while true; do
+    read -p "Lilo configuration has been changed. Do you wish to run ${LILOBIN} (y/n): " RUNLILO
+    case $RUNLILO in
+        [Yy]* ) $LILOBIN; COUNT=$(($COUNT+1));break;;
+        [Nn]* )break;;
+        * ) echo "Please answer [y]es or [n]o.";;
+    esac
+ done
+}
+
 
 #START
 switching_keys
@@ -296,7 +280,7 @@ need_ru_console
 need_ru_man
 need_ru_lilo
 
-ru_languge
+ru_langugeX
 
 if [ $RU_CONSOLE = "Y" ]
 then
