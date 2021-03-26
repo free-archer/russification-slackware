@@ -1,0 +1,224 @@
+#!/bin/bash
+#####
+# Скрипт русификации консоли и Х-сессии в UTF-8 
+# диалогом выбора комбинации клавиш переключения раскладки клавиатуры.
+# Основывается на скрипте от Graf (graf on slackware.su) 06.2017 - version 4
+# Разраотчик Free Archer 2021
+# Проверено на Slackware 15 (current)
+#####
+
+#Область настроек
+LILOCFG="/etc/lilo.conf"
+LILOBIN="/sbin/lilo"
+RCFONT="/etc/rc.d/rc.font"
+LALIAS="/usr/share/locale/locale.alias"
+PLANG="/etc/profile.d/lang.sh"
+RCKEYMAP="/etc/rc.d/rc.keymap"
+result=$(tempfile)
+trap "rm -f $result" 0 1 2 5 15
+# Копируем раскладку по AltShift
+KBD_AS="/usr/share/kbd/keymaps/i386/qwerty/ruwin_alt_sh-UTF-8.map.gz"
+
+# Надо быть с правами рута
+if [ "$UID" -ne "0" ]
+then
+   echo "You must be root."
+   exit
+fi
+
+# Проверяем версию Slackware и назначаем соответствующие пути к man.conf
+SVERSION=$(cat /etc/slackware-version)
+
+case $SVERSION in 
+"Slackware 14.2" ) 
+  MANCONF="/etc/man.conf"
+  XKB="/etc/X11/xorg.conf.d/90-keyboard-layout.conf"
+  KLC="/usr/share/X11/xorg.conf.d/90-keyboard-layout.conf"
+  ;;
+"Slackware 14.2+" | "Slackware 15"  ) 
+  XKB="/etc/X11/xorg.conf.d/90-keyboard-layout-evdev.conf"
+  KLC="/usr/share/X11/xorg.conf.d/90-keyboard-layout-evdev.conf"
+  MANCONF="/etc/man_db.conf"
+  ;;
+esac 
+
+#УСЛОВИЯ
+dialog --backtitle "What do you wont to rusification?" \
+        --title "Select options" --clear \
+        --checklist "What do you wont to rusification?" 20 61 5 \
+        "RU_X" "Х-windows" on \
+        "RU_CONSOLE"  "console" off \
+        "RU_MAN"    "man pages" off \
+        "RU_LILO"    "lilo to utf-8" off \
+        2> $result
+
+ACTIONS=$(cat $result)
+echo $ACTIONS
+
+dialog --clear --title "Select a keyboard layout switching keys:" \
+        --menu "Selection a keyboard layout" 20 51 4 \
+        "ruwin_alt_sh-UTF-8"  "Alt+Shift" \
+        "ruwin_ct_sh-UTF-8" "Ctrl+Shift" \
+        "ruwin_cplk-UTF-8" "CapsLock" \
+         2> $result
+
+KEY_LAYOUT=$(cat $result)
+echo $KEY_LAYOUT
+
+#ОСНОВНЫЕ ФУНКЦИИ
+
+# Функция перезаписи rc.font новыми значениями
+ru_keymap()
+{
+   [ ! -f "$KBD_AS" ] && cp ./ruwin_alt_sh-UTF-8.map.gz $KBD_AS 
+       
+# Функция назначения клавиш переключения раскладки
+echo 'Enable russian font in console...'
+cp $RCFONT $RCFONT.backup
+
+cat << EOF > $RCFONT
+setfont -v Cyr_a8x16
+for n in 1 2 3 4 5 6; do
+   echo -ne "\033%G" > /dev/tty\$n
+done
+
+# Load the keyboard map
+EOF
+
+echo "loadkeys $KEY_LAYOUT" 1>>$RCFONT
+
+chmod +x $RCFONT
+chmod -x $RCKEYMAP
+}
+
+ru_man()
+{
+   MANSTR=$(grep 'groff -Dutf8 -Tutf8 -mandoc' $MANCONF)
+
+   if [ -z "$MANSTR" ]
+   then
+   echo 'Enable russian mans...'
+   cp $MANCONF $MANCONF.backup &&
+   cat $MANCONF.backup | sed /"NROFF\t\t\/usr\/bin\/nroff -mandoc"/c"NROFF\t\t\/usr\/bin\/groff -Dutf8 -Tutf8 -mandoc" > $MANCONF 
+   fi   
+}
+
+######## change lilo ###############
+set_lilo_utf8()
+{
+   cp $LILOCFG $LILOCFG.backup
+# Находим append
+  FD=$(grep 'append=' $LILOCFG)
+
+# Если изменения уже производились, уходим проверив на всякий случай значение, если 0 меняем на 1
+  if [[ "$FD" == *\"*append* && "$FD" == "#"* ]]
+  then
+  GREP1=$(grep '^append=\" vt.default_utf8=1' $LILOCFG) && return
+  GREP2=$(grep '^append=\" vt.default_utf8=0' $LILOCFG) && sed -i s'/vt.default_utf8=0/vt.default_utf8=1/' $LILOCFG && start_lilo && return
+
+# Eсли не нашли или закоментарен, то добавляем строку перед первым boot
+  elif [[ -z "$FD" || "$FD" == "#"* ]]
+   then
+     sed -i '0,/^boot/{/^boot/i append=" vt.default_utf8=1"
+     }' $LILOCFG
+   start_lilo
+
+# Если нашли, то проверяем наличие и значение vt.default_utf8 и в случае 0 меняем на 1
+   elif [[ $FD == *vt.default_utf8=0* ]]
+   then
+    sed -i s'/vt.default_utf8=0/vt.default_utf8=1/' $LILOCFG && start_lilo
+
+# Если нашли, но значение vt.default_utf8=1, уходим ничего не делая
+   elif [[ $FD == *vt.default_utf8=1* ]]
+   then
+    return
+
+# В остальных случаях добавляем в начало к существующим параметрам vt.default_utf8=1
+   else
+    sed -i s'/append="/append="vt.default_utf8=1 /' $LILOCFG && start_lilo
+  fi
+}
+
+### меняем язык ###
+ru_languge()
+{
+UTFSTR=$(grep 'ru_RU.UTF-8' $PLANG)
+
+# Чтобы кучу раз не писало при повторных запусках, проверяем наличие строки
+if [ -z "$UTFSTR" ]
+then
+ cp $PLANG $PLANG.backup &&
+ cat $PLANG.backup | sed s/"^[^#]"/"#&"/ > $PLANG &&
+ cat << EOF >> $PLANG
+
+# Russian locale
+export LANG=ru_RU.UTF-8
+EOF
+
+fi
+#### закончили менять язык ####
+
+#### Правим алиасы ####
+AUTFSTR=$(grep 'ru_RU.UTF-8' $LALIAS)
+
+# Чтобы кучу раз не писало при повторных запусках, проверяем наличие строки
+if [ -z "$AUTFSTR" ]
+then
+  echo 'Aliases correction...'
+  cp $LALIAS $LALIAS.backup &&
+  cat $LALIAS.backup | sed /"ru_RU.ISO-8859-5"/c"russian\t\tru_RU.UTF-8\nru_RU\t\tru_RU.UTF-8\nru\t\tru_RU.UTF-8" > $LALIAS
+fi
+
+if [[ $RU_CONSOLE = "Y" ]]; then
+   ru_keymap
+fi
+
+if [[ $RU_MAN = "Y" ]]; then
+   ru_man
+fi
+
+#### Переключение раскладки в X ####
+echo "Изменяем раскладку клавиатуры в Х-ах"
+
+if [ ! -f "$XKB" ]
+then
+  [ ! -f "$KLC" ] && echo "file $KLC not found, script terminated. BYE!" && exit
+ 
+  cp $KLC $XKB
+fi
+
+   sed -i '/^#/!s/"us"*$/"us,ru"/' $XKB
+
+  if [[ "$KEY_LAYOUT" == "ruwin_alt_sh-UTF-8" ]]
+  then
+   sed -i '/^#/!s/"terminate:ctrl_alt_bksp.*$/"terminate:ctrl_alt_bksp,grp:alt_shift_toggle"/' $XKB
+   echo "Switching keys is - AltShift"      
+  elif [[ "$KEY_LAYOUT" == "ruwin_cplk-UTF-8" ]]
+  then
+     sed -i '/^#/!s/"terminate:ctrl_alt_bksp.*$/"terminate:ctrl_alt_bksp,grp:caps_toggle"/' $XKB
+     echo "Switching keys is - CapsLock"
+  else
+     sed -i '/^#/!s/"terminate:ctrl_alt_bksp.*$/"terminate:ctrl_alt_bksp,grp:ctrl_shift_toggle"/' $XKB
+     echo "Switching keys is - CtrlShift"
+  fi
+}
+
+
+#START
+if [[ "${ACTIONS[@]}" =~ "RU_X" ]]; then
+    echo "run RU_X" 
+    #ru_languge
+fi
+if [[ "${ACTIONS[@]}" =~ "RU_CONSOLE" ]]; then
+    echo "run RU_CONSOLE" 
+    #ru_keymap
+fi
+if [[ "${ACTIONS[@]}" =~ "RU_MAN" ]]; then
+    echo "run RU_MAN" 
+    #ru_man
+fi
+if [[ "${ACTIONS[@]}" =~ "RU_LILO" ]]; then
+    echo "run RU_LILO" 
+    #set_lilo_utf8
+fi
+
