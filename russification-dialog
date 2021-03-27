@@ -42,14 +42,13 @@ case $SVERSION in
   ;;
 esac 
 
-#УСЛОВИЯ
+УСЛОВИЯ
 dialog --backtitle "What do you wont to rusification?" \
         --title "Select options" --clear \
         --checklist "What do you wont to rusification?" 20 61 5 \
         "RU_X" "Х-windows" on \
         "RU_CONSOLE"  "console" off \
         "RU_MAN"    "man pages" off \
-        "RU_LILO"    "lilo to utf-8" off \
         2> $result
 
 ACTIONS=$(cat $result)
@@ -65,8 +64,12 @@ dialog --clear --title "Select a keyboard layout switching keys:" \
 KEY_LAYOUT=$(cat $result)
 echo $KEY_LAYOUT
 
-#ОСНОВНЫЕ ФУНКЦИИ
+#test
+# ACTIONS="RU_X"
+# KEY_LAYOUT="ruwin_alt_sh-UTF-8"
+#test
 
+#ОСНОВНЫЕ ФУНКЦИИ
 # Функция перезаписи rc.font новыми значениями
 ru_keymap()
 {
@@ -103,43 +106,7 @@ ru_man()
    fi   
 }
 
-######## change lilo ###############
-set_lilo_utf8()
-{
-   cp $LILOCFG $LILOCFG.backup
-# Находим append
-  FD=$(grep 'append=' $LILOCFG)
-
-# Если изменения уже производились, уходим проверив на всякий случай значение, если 0 меняем на 1
-  if [[ "$FD" == *\"*append* && "$FD" == "#"* ]]
-  then
-  GREP1=$(grep '^append=\" vt.default_utf8=1' $LILOCFG) && return
-  GREP2=$(grep '^append=\" vt.default_utf8=0' $LILOCFG) && sed -i s'/vt.default_utf8=0/vt.default_utf8=1/' $LILOCFG && start_lilo && return
-
-# Eсли не нашли или закоментарен, то добавляем строку перед первым boot
-  elif [[ -z "$FD" || "$FD" == "#"* ]]
-   then
-     sed -i '0,/^boot/{/^boot/i append=" vt.default_utf8=1"
-     }' $LILOCFG
-   start_lilo
-
-# Если нашли, то проверяем наличие и значение vt.default_utf8 и в случае 0 меняем на 1
-   elif [[ $FD == *vt.default_utf8=0* ]]
-   then
-    sed -i s'/vt.default_utf8=0/vt.default_utf8=1/' $LILOCFG && start_lilo
-
-# Если нашли, но значение vt.default_utf8=1, уходим ничего не делая
-   elif [[ $FD == *vt.default_utf8=1* ]]
-   then
-    return
-
-# В остальных случаях добавляем в начало к существующим параметрам vt.default_utf8=1
-   else
-    sed -i s'/append="/append="vt.default_utf8=1 /' $LILOCFG && start_lilo
-  fi
-}
-
-### меняем язык ###
+### меняем язык в X ###
 ru_languge()
 {
 UTFSTR=$(grep 'ru_RU.UTF-8' $PLANG)
@@ -169,14 +136,6 @@ then
   cat $LALIAS.backup | sed /"ru_RU.ISO-8859-5"/c"russian\t\tru_RU.UTF-8\nru_RU\t\tru_RU.UTF-8\nru\t\tru_RU.UTF-8" > $LALIAS
 fi
 
-if [[ $RU_CONSOLE = "Y" ]]; then
-   ru_keymap
-fi
-
-if [[ $RU_MAN = "Y" ]]; then
-   ru_man
-fi
-
 #### Переключение раскладки в X ####
 echo "Изменяем раскладку клавиатуры в Х-ах"
 
@@ -203,22 +162,16 @@ fi
   fi
 }
 
-
 #START
 if [[ "${ACTIONS[@]}" =~ "RU_X" ]]; then
     echo "run RU_X" 
-    #ru_languge
+    ru_languge
 fi
 if [[ "${ACTIONS[@]}" =~ "RU_CONSOLE" ]]; then
     echo "run RU_CONSOLE" 
-    #ru_keymap
+    ru_keymap
 fi
 if [[ "${ACTIONS[@]}" =~ "RU_MAN" ]]; then
     echo "run RU_MAN" 
-    #ru_man
+    ru_man
 fi
-if [[ "${ACTIONS[@]}" =~ "RU_LILO" ]]; then
-    echo "run RU_LILO" 
-    #set_lilo_utf8
-fi
-
