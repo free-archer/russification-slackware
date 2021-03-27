@@ -74,7 +74,7 @@ echo $KEY_LAYOUT
 # Функция перезаписи rc.font новыми значениями
 ru_keymap()
 {
-   [ ! -f "$KBD_AS" ] && cp $FONT_ALT_SIFT $KBD_AS 
+[ ! -f "$KBD_AS" ] && cp $FONT_ALT_SIFT $KBD_AS 
        
 # Функция назначения клавиш переключения раскладки
 echo 'Enable russian font in console...'
@@ -92,7 +92,7 @@ EOF
 echo "loadkeys $KEY_LAYOUT" 1>>$RCFONT
 
 chmod +x $RCFONT
-chmod -x $RCKEYMAP
+#chmod -x $RCKEYMAP
 }
 
 ru_man()
