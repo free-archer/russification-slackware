@@ -53,7 +53,7 @@ dialog --backtitle "What do you wont to rusification?" \
         2> $result
 
 ACTIONS=$(cat $result)
-echo $ACTIONS
+#echo $ACTIONS
 
 dialog --clear --title "Select a keyboard layout switching keys:" \
         --menu "Selection a keyboard layout" 20 51 4 \
@@ -63,7 +63,7 @@ dialog --clear --title "Select a keyboard layout switching keys:" \
          2> $result
 
 KEY_LAYOUT=$(cat $result)
-echo $KEY_LAYOUT
+#echo $KEY_LAYOUT
 
 #test
 # ACTIONS="RU_X"
@@ -92,7 +92,9 @@ EOF
 echo "loadkeys $KEY_LAYOUT" 1>>$RCFONT
 
 chmod +x $RCFONT
-#chmod -x $RCKEYMAP
+if [ -f $RCKEYMAP ];then
+   chmod -x $RCKEYMAP
+fi
 }
 
 ru_man()
@@ -138,7 +140,7 @@ then
 fi
 
 #### Переключение раскладки в X ####
-echo "Изменяем раскладку клавиатуры в Х-ах"
+echo "Change layout in X..."
 
 if [ ! -f "$XKB" ]
 then
