@@ -24,7 +24,7 @@
 
 PRGNAM=russification
 VERSION=${VERSION:-0.1}
-BUILD=${BUILD:-4}
+BUILD=${BUILD:-5}
 TAG=${TAG:-_SBo}
 
 ARCH=noarch

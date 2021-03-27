@@ -167,14 +167,14 @@ fi
 
 #START
 if [[ "${ACTIONS[@]}" =~ "RU_X" ]]; then
-    echo "run RU_X" 
+    #echo "run RU_X" 
     ru_languge
 fi
 if [[ "${ACTIONS[@]}" =~ "RU_CONSOLE" ]]; then
-    echo "run RU_CONSOLE" 
+    #echo "run RU_CONSOLE" 
     ru_keymap
 fi
 if [[ "${ACTIONS[@]}" =~ "RU_MAN" ]]; then
-    echo "run RU_MAN" 
+    #echo "run RU_MAN" 
     ru_man
 fi
