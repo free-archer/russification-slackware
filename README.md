@@ -1,1 +1,0 @@
-# russification-slackware

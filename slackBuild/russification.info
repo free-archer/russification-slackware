@@ -1,0 +1,8 @@
+PRGNAM="russification"
+VERSION="0.1"
+HOMEPAGE="https://slackware-alive.ru"
+DOWNLOAD="https://slackware-alive.ru/russification-0.1.tar.gz"
+MD5SUM=""
+REQUIRES=""
+MAINTAINER="Free Archer"
+EMAIL="bespalov.alexey@yandex.ru"
