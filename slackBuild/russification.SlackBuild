@@ -33,6 +33,7 @@ CWD=$(pwd)
 TMP=${TMP:-/tmp/SBo}
 PKG=$TMP/package-$PRGNAM
 OUTPUT=${OUTPUT:-/tmp}
+FONT="ruwin_alt_sh-UTF-8.map.gz"
 
 set -e
 
@@ -57,9 +58,10 @@ find -L . \
 # cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
 
 mkdir -p $PKG/usr/sbin
-cp -a \
-  $PRGNAM \
-  $PKG/usr/sbin/
+cp -a $PRGNAM $PKG/usr/sbin/
+
+mkdir -p $PKG/usr/share/russification
+cp -a $FONT $PKG/usr/share/russification
 
 mkdir -p $PKG/install
 cat $CWD/slack-desc > $PKG/install/slack-desc

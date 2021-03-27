@@ -18,6 +18,7 @@ result=$(tempfile)
 trap "rm -f $result" 0 1 2 5 15
 # Копируем раскладку по AltShift
 KBD_AS="/usr/share/kbd/keymaps/i386/qwerty/ruwin_alt_sh-UTF-8.map.gz"
+FONT_ALT_SIFT="/usr/share/russification/ruwin_alt_sh-UTF-8.map.gz"
 
 # Надо быть с правами рута
 if [ "$UID" -ne "0" ]
@@ -73,7 +74,7 @@ echo $KEY_LAYOUT
 # Функция перезаписи rc.font новыми значениями
 ru_keymap()
 {
-   [ ! -f "$KBD_AS" ] && cp ./ruwin_alt_sh-UTF-8.map.gz $KBD_AS 
+   [ ! -f "$KBD_AS" ] && cp $FONT_ALT_SIFT $KBD_AS 
        
 # Функция назначения клавиш переключения раскладки
 echo 'Enable russian font in console...'
