@@ -49,12 +49,12 @@ find -L . \
  \( -perm 666 -o -perm 664 -o -perm 640 -o -perm 600 -o -perm 444 \
   -o -perm 440 -o -perm 400 \) -exec chmod 644 {} \;
 
-mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION
-cp -a \
-  CHANGELOG \
-  README \
-  $PKG/usr/doc/$PRGNAM-$VERSION/
-cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
+# mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION
+# cp -a \
+#   CHANGELOG \
+#   README \
+#   $PKG/usr/doc/$PRGNAM-$VERSION/
+# cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
 
 mkdir -p $PKG/usr/sbin
 cp -a \
