@@ -36,7 +36,7 @@ case $SVERSION in
   XKB="/etc/X11/xorg.conf.d/90-keyboard-layout.conf"
   KLC="/usr/share/X11/xorg.conf.d/90-keyboard-layout.conf"
   ;;
-"Slackware 14.2+" | "Slackware 15"  ) 
+"Slackware 14.2+" | "Slackware 15"  | "Slackware 15.0" ) 
   XKB="/etc/X11/xorg.conf.d/90-keyboard-layout-evdev.conf"
   KLC="/usr/share/X11/xorg.conf.d/90-keyboard-layout-evdev.conf"
   MANCONF="/etc/man_db.conf"
