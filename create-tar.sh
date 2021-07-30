@@ -1,2 +1,5 @@
-tar czvf ./russification-0.1.tar.gz ./russification-0.1
-cp ./russification-0.1.tar.gz ./slackBuild
+#!/bin/bash
+
+ver="0.2"
+tar czvf ./russification-$ver.tar.gz ./src
+cp ./russification-$ver.tar.gz ./slackBuild
