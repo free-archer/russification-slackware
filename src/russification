@@ -47,7 +47,7 @@ esac
 dialog --backtitle "What do you wont to rusification?" \
         --title "Select options" --clear \
         --checklist "What do you wont to rusification?" 20 61 5 \
-        "RU_X" "Х-windows" on \
+        "RU_X" "X-windows" on \
         "RU_CONSOLE"  "console" off \
         "RU_MAN"    "man pages" off \
         2> $result

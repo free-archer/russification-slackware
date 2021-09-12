@@ -1,3 +1,4 @@
 .vscode
 *.tgz
 *.tar.gz
+tmp/
